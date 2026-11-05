@@ -1,0 +1,31 @@
+name: Build unsigned iOS IPA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Archive app without signing
+        run: >-
+          xcodebuild -project "DJI Simulator.xcodeproj"
+          -scheme "DJI Simulator"
+          -configuration Release
+          -sdk iphoneos
+          -archivePath "$RUNNER_TEMP/DJI Simulator.xcarchive"
+          CODE_SIGNING_ALLOWED=NO archive
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -R "$RUNNER_TEMP/DJI Simulator.xcarchive/Products/Applications/DJI Simulator.app" "$RUNNER_TEMP/Payload/"
+          ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/Payload" "$RUNNER_TEMP/DJI-Simulator.ipa"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DJI-Simulator-unsigned-IPA
+          path: ${{ runner.temp }}/DJI-Simulator.ipa
+          retention-days: 7
